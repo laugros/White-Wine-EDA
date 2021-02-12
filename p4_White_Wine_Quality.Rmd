@@ -1,0 +1,314 @@
+---
+title: "White Wine Quality Exploration by Leandro F Rosendo"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+This work is part of the final project of the "Data Analysis with R" module from the nanodegree Data Analysis with R.
+
+The data that will be used here:
+ P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis. 
+  Modeling wine preferences by data mining from physicochemical properties.
+  In Decision Support Systems, Elsevier, 47(4):547-553. ISSN: 0167-9236.
+
+  Available at: [@Elsevier] http://dx.doi.org/10.1016/j.dss.2009.05.016
+                [Pre-press (pdf)] http://www3.dsi.uminho.pt/pcortez/winequality09.pdf
+                [bib] http://www3.dsi.uminho.pt/pcortez/dss09
+
+```{r message=FALSE, warning=FALSE}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(GGally)
+
+```
+
+In this work, white wine data will be evaluated in a attempt to discover some relations between the many characteristics given.
+The dataset consist in 4898 observations and 12 variables, 11 of which are chemical proprieties of the wine and 1 is the median score of the wine given by at least 3 specialist.
+
+
+
+## Univariate Plots Section
+
+
+The quality scores have a median score equals to 6.000 and 5.878 mean score.  It looks fairly distributed.
+
+```{r}
+
+wineQualityWhites <- read.csv('wineQualityWhites.csv')
+
+str(wineQualityWhites)
+summary(wineQualityWhites)
+
+
+```
+
+
+```{r}
+
+ggplot(data=wineQualityWhites, aes(quality)) + geom_bar ()
+
+```
+
+We can see that we have a roughly normal distribution of quality scores.
+
+```{r message=FALSE, warning=FALSE}
+ggplot(data=wineQualityWhites, aes(residual.sugar)) + geom_histogram () + 
+  scale_x_continuous(limits = c(0,70),breaks = seq(0,32,2)) 
+```
+
+Checking for Sugar: sugar is one of the most easiest characteristics one notices when drinking wine.
+The following plot show that most of the white wines has bellow 8 g/dm^3 residual sugar and highly concentrated in values bellow 4.
+
+
+
+```{r message=FALSE, warning=FALSE}
+ggplot(data=wineQualityWhites, aes(alcohol)) + 
+  geom_histogram () + 
+  scale_x_continuous(limits = c(8,15),breaks = seq(0,16,1)) 
+
+```
+
+Checking for alcohol: Values for alcohol are better distributed along its values, as the histogram shows. 
+
+
+```{r message=FALSE, warning=FALSE}
+ggplot(data=wineQualityWhites, aes(pH)) + geom_histogram ()
+
+```
+
+Checking for pH: THe pH scale ranges between 0 (very acidic) to 14 (very basic). The white wines in this dataset shows that the pH varies just decimal values around 3 in a roughly normal distributon.
+
+```{r message=FALSE, warning=FALSE}
+
+ggplot(data=wineQualityWhites, aes(chlorides)) + geom_histogram ()
+
+```
+
+Checking for chlorides: the amount of salt (sodium chloride) in the wine. We see a roughly normal distribution for values bellow 0.1, followed by a long tale, but with relative very low frequency.
+
+```{r message=FALSE}
+ggplot(data=wineQualityWhites, aes(density)) + geom_histogram ()
+
+```
+
+Checking for density: most wines have around or bellow 1 g/cm^3, the density of water
+
+```{r message=FALSE, warning=FALSE}
+ggplot(data=wineQualityWhites, aes(fixed.acidity)) + geom_histogram ()
+
+```
+
+Checking for fixed.acidity: acids involved with wine. We see a fairly normal distribution for values bellow 10 g/dm^3
+
+```{r message=FALSE, warning=FALSE}
+ggplot(data=wineQualityWhites, aes(volatile.acidity)) + geom_histogram ()
+
+```
+
+Checking for volatile acidity: the amount of acetic acid in wine. We can see the presence of positive skewed distribution.
+
+
+```{r message=FALSE, warning=FALSE}
+ggplot(data=wineQualityWhites, aes(citric.acid)) + geom_histogram ()
+
+```
+
+Checking for citric.acid: can add 'freshness' sensation and flavor to wines. This is also a well distributed characteristic.
+
+
+## Univariate Analysis
+
+What is the structure of your dataset?
+There are 4989 observations within the data set. There 13 variable. All variables are numerical.
+
+What is/are the main feature(s) of interest in your dataset?
+The main feature is the quality in dataset. The idea is to try to find what are the relation that make a good or bad wine.
+
+What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
+Sugar and alcohol are the main features to investigate against quality, since are some of the characteristics that are most easy to identify when drinking wine. Some other features are also of interest, like acidity.
+
+Did you create any new variables from existing variables in the dataset?
+Just a few based on the quality score. A factor variable so it is possible to plot data assuming the quality as a label and new categories, such as "good" or "bad" wines, according to the scores (>7 and <=6, for example)
+
+Of the features you investigated, were there any unusual distributions?
+Did you perform any operations on the data to tidy, adjust, or change the form
+of the data? If so, why did you do this?
+It was possible to observe several variables that did not present any direct relation. Most of the correlation have near 0 values.
+
+## Bivariate Plots and Multivariate Plots Section
+
+Now, let`s explore how those variables are related to the quality of the wine.
+Exploring the relations between the variables:
+
+```{r message=FALSE, warning=FALSE}
+
+ggpairs(wineQualityWhites, lower = list(continuous = wrap("points", shape = I('.'))),upper = list(combo = wrap("box", outlier.shape = I('.'))))
+
+#Since the variable "quality" is numeric, let's create a new variable "qualitylabel" as a factor for investigations. The original numeric variable was not replaced in order to keep it in case of further investigations that would make calculations with it, e.g., median score for specifics ranges of alcohol levels.
+
+wineQualityWhites$qualityLabel = as.factor(wineQualityWhites$quality)
+
+
+```
+
+Residual Sugar, density and quality
+```{r message=FALSE, warning=FALSE}
+
+ggplot(data=wineQualityWhites, aes(residual.sugar, density)) + 
+  geom_point (alpha = 1/10) + 
+  geom_smooth(method = lm)
+
+cor(wineQualityWhites$residual.sugar, wineQualityWhites$density)
+
+```
+
+We see a apparently linear for this relation
+But in fact, the correlation between then is 0.838. Sugar must be more dense then Wine as a whole. Adding more sugar implies in the increase of density.
+
+
+Let`s add quality as colored label to check how this relation behaves with the quality score
+
+```{r}
+ggplot(data=wineQualityWhites, aes(residual.sugar, density, color=qualityLabel)) + 
+  geom_point (alpha = 1/5)
+
+```
+
+The colors represents the quality scores. Let`s explore more to highlight the differences.
+It is possible to identify 2 main zones of colors representing the most common scores in the dataset . The green (score 5) and blue (scores 6 and 7). The green belt has higher values of density for the same values of residual sugar than the blue one. This might means that better wines have relatively less residual sugar.
+
+
+Let`s look into this creating a new classification variable: Better (scores <=5) and Poor wines (scores > 5).
+
+```{r}
+
+wineQualityWhites$BPQuality = ifelse(wineQualityWhites$quality <= 5, "Poor", "Better")
+
+```
+
+Plotting the residual.sugar against the mean density for these 2 groups, we can see a little more clearer that better classified white wines are less dense than poor white wines for almost every range of sugar in it.
+
+```{r message=FALSE, warning=FALSE}
+
+wineQualityWhites %>% 
+  select(density,residual.sugar,BPQuality) %>% 
+  group_by(residual.sugar,BPQuality) %>% 
+  summarise(mean.density = mean(density)) %>% 
+  ggplot(aes(x = residual.sugar, y=mean.density, color = BPQuality)) + 
+  geom_line() + 
+  scale_x_continuous(limits = c(0,25)) +
+  scale_y_continuous(limits = c(0.985,1.005))
+```
+
+Now let`s explore alcohol vs quality
+```{r}
+ggplot(wineQualityWhites, aes(group=quality, y=alcohol, x=quality)) + 
+  geom_boxplot() 
+
+```
+
+Here we can see the distribution of alcohol levels for all the scores. We can see that better wines presents higher values of alcohol
+
+
+```{r message=FALSE, warning=FALSE}
+
+wineQualityWhites %>% 
+  select(alcohol, qualityLabel) %>% 
+  group_by(qualityLabel) %>% 
+  summarise(mean.alcohol = mean(alcohol)) %>% 
+  ggplot(aes(qualityLabel, mean.alcohol,group = 1, color = "red")) + geom_line()
+
+
+```
+
+Plotting mean alcohol for each score, we can see that the top wines have higher alcohol levels than the other.
+
+Verifying the relation between citric acid and fixed acidity, we see a upward trend in the plot. Still, the correlation is very weak (0.289)
+
+
+```{r message=FALSE, warning=FALSE}
+
+ggplot(data=wineQualityWhites, aes(x=citric.acid, y= fixed.acidity)) + 
+  geom_point() + 
+  geom_smooth(method = lm)
+
+cor(wineQualityWhites$citric.acid, wineQualityWhites$fixed.acidity)
+
+```
+
+
+```{r}
+
+#Let`s try to find some possible hidden relations creating 2 categories base on the score: Poor and Better wine, for scores <=7 and >7, respectively
+wineQualityWhites$BPQuality = ifelse(wineQualityWhites$quality <= 7, "Poor", "Better")
+
+#We can see that this does not show much differences from the comparisons made before.
+
+#Alcohol vs Chlorides
+ggplot(wineQualityWhites, aes(alcohol,chlorides, color=BPQuality)) +
+  geom_point()
+
+#Citric Acid vs Sulfur dioxide
+ggplot(wineQualityWhites, aes(citric.acid,total.sulfur.dioxide, color=BPQuality)) +
+  geom_point()
+
+#Chlorides vs Sugar
+ggplot(wineQualityWhites, aes(chlorides,residual.sugar, color=BPQuality)) +
+  geom_point()
+
+
+
+```
+
+## Final Plots and Summary
+
+
+```{r}
+
+ggplot(data=wineQualityWhites, aes(quality)) + 
+  geom_bar (fill = "#CFD590", color = "red") +
+  ggtitle("Whie Wine Quality")
+
+
+```
+
+The distribution of scores peaks at 6. Very few 9s.
+
+
+```{r}
+
+ggplot(wineQualityWhites, aes(group=quality, y=alcohol, x=quality)) + 
+  geom_boxplot() +
+  ggtitle("Quality by % level of Alcohol") + 
+  ylab("% of alcohol")
+
+```
+
+The boxplot shows that better rated white wines tends to have higher level of % of alcohol. This trend starts at score 6.
+
+
+```{r}
+ggplot(data=wineQualityWhites, aes(residual.sugar, density, color=qualityLabel)) + 
+  geom_point (alpha = 1/5) +
+  ylab("density (g / cm^3)") + 
+  xlab("Residual Sugar (g / cm^3)") +
+  ggtitle("Wine quality by residual sugar (g / cm^3) and density (g / cm^3)")
+ 
+```
+
+The colors represents the quality scores. There are 2 main zones of colors representing the most common scores in the dataset .The green (score 5) and blue (scores 6 and 7). The green belt has higher values of density for the same values of residual sugar than the blue one. This might means that better wines have relatively less residual sugar. Better wines are less dense for the same amount of sugar.
+
+
+
+## Reflection
+
+
+The white wine dataset contains information on 4898 wines and 11 variables of chemical features. At least 3 wine specialists graded the wine in a range of 0 to 10, from very bad to excellent.The goal of this work was to explore the data and try to find what are the characteristics that makes a a wine an excellent wine, at least from the point of view of the experts that rated the wines available in this dataset. After verifying what are the variables contained and the meaning of each one (available in https://s3.amazonaws.com/udacity-hosted-downloads/ud651/wineQualityInfo.txt), I started by plotting the distribution of scores, which gave a almost normal distribution. By exploring the variables, it was possible to observe that alcohol is an important factor in the quality of the wine. The best rated wines have higher levels of % of alcohol. When checking for the correlation of the variables, the best one was the residual sugar and density, with a 0.839 correlation. This relation was explored by adding the quality variable to it and checking for the differences and draw a conclusion.
+The limitations of the data set include lack of more categorical variables that could improve the possibilities for exploration, such as the grape variety or age of the wine.
+ 
